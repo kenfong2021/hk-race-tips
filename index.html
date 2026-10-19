@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="zh-HK"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+<title>HK Race Tips</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+HK:wght@400;500;700&display=swap">
+<style>
+/* Layout: one centred column. Header + disclaimer, meeting bar, race tabs, picks panel, ranked runners, weight sliders.
+   Ranking is computed from the form data the user supplies; nothing is fetched from the network. */
+:root {
+  --bg: #F5F2E8;
+  --surface: #FFFFFF;
+  --surface-2: #EDE9DA;
+  --ink: #14281D;
+  --muted: #55655A;
+  --line: #D8D3BF;
+  --accent: #0F6B45;
+  --on-accent: #FFFFFF;
+  --gold: #8A6508;
+  --gold-bg: #F7E9BE;
+  --good: #0F6B45;
+  --warn-bg: #FFF1CC;
+  --warn-ink: #5A4100;
+  --bar: #0F6B45;
+  --bar-bg: #E3DFCE;
+  --font-display: 'Oswald', 'Noto Sans HK', system-ui, sans-serif;
+  --font-body: 'Noto Sans HK', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1A13; --surface: #16261C; --surface-2: #1D3326; --ink: #EEF2E6; --muted: #A5B5A8;
+    --line: #2C4535; --accent: #4FCB8F; --on-accent: #0E1A13; --gold: #F2C94C; --gold-bg: #3A3210;
+    --good: #4FCB8F; --warn-bg: #3A3210; --warn-ink: #F7E2A0; --bar: #4FCB8F; --bar-bg: #2C4535;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1A13; --surface: #16261C; --surface-2: #1D3326; --ink: #EEF2E6; --muted: #A5B5A8;
+  --line: #2C4535; --accent: #4FCB8F; --on-accent: #0E1A13; --gold: #F2C94C; --gold-bg: #3A3210;
+  --good: #4FCB8F; --warn-bg: #3A3210; --warn-ink: #F7E2A0; --bar: #4FCB8F; --bar-bg: #2C4535;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; text-wrap: balance; }
+.app {
+  max-width: 760px; margin-inline: auto; padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.top h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: .02em; line-height: 1.15; }
+.top .sub { color: var(--muted); font-size: 14px; }
+.btn {
+  min-height: 40px; padding: 6px 14px; background: var(--surface); border: 2px solid var(--line);
+  border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.disclaimer { background: var(--warn-bg); color: var(--warn-ink); border-radius: 12px; padding: 10px 14px; font-size: 13px; }
+.meeting { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+.meeting .info { display: flex; flex-direction: column; min-width: 0; }
+.meeting .info b { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: .02em; }
+.meeting .info span { color: var(--muted); font-size: 13px; }
+.meeting .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fixture { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 10px 14px; }
+.fixture .near { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.fixture .near b { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: .02em; }
+.fixture .near span { color: var(--muted); font-size: 13px; }
+.fixture label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .06em; }
+.fixture select { width: 100%; min-height: 44px; background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 15px; }
+.fixture .note { font-size: 12px; color: var(--muted); }
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.tab { flex: none; min-width: 52px; min-height: 44px; padding: 4px 12px; background: var(--surface); border: 2px solid var(--line);
+  border-radius: 10px; font-family: var(--font-display); font-size: 18px; font-weight: 600; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.racehead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.racehead h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: .02em; }
+.racehead span { color: var(--muted); font-size: 14px; }
+.picks { background: var(--surface); border: 2px solid var(--accent); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.picks h3 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.pickgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.pick { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pick .k { font-size: 12px; color: var(--muted); font-weight: 700; }
+.pick .v { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: .03em; }
+.conf { align-self: flex-start; background: var(--gold-bg); color: var(--gold); border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 700; }
+.list { display: flex; flex-direction: column; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.row { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
+.row.top1 { border-color: var(--accent); }
+.rank { font-family: var(--font-display); font-size: 26px; font-weight: 700; width: 28px; text-align: center; color: var(--muted); }
+.top1 .rank, .top2 .rank, .top3 .rank { color: var(--gold); }
+.no { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700;
+  font-size: 18px; background: var(--ink); color: var(--bg); }
+.who { min-width: 0; }
+.who b { font-size: 16px; display: block; overflow-wrap: anywhere; }
+.who span { color: var(--muted); font-size: 13px; display: block; overflow-wrap: anywhere; }
+.score { font-family: var(--font-display); font-size: 26px; font-weight: 700; text-align: right; }
+.bar { grid-column: 1 / -1; height: 8px; background: var(--bar-bg); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+.chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.assess { grid-column: 1 / -1; margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.assess b { color: var(--ink); font-weight: 600; }
+.chip { background: var(--surface-2); border-radius: 999px; padding: 1px 10px; font-size: 12px; font-weight: 500; }
+.detail { grid-column: 1 / -1; }
+.detail summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 700; padding: 4px 0; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px 14px; padding-top: 6px; }
+.fact { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.fact .bar { height: 6px; }
+.panel { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 4px 14px; }
+.panel > summary { cursor: pointer; font-weight: 700; padding: 10px 0; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 20px; padding: 4px 0 12px; }
+.sl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; font-size: 14px; }
+.sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.sl output { font-family: var(--font-display); font-weight: 600; }
+.import { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.import textarea { width: 100%; min-height: 140px; background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.import .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.import .help { font-size: 12.5px; color: var(--muted); }
+.import code { background: var(--surface-2); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+.msg { font-size: 13px; font-weight: 700; color: var(--accent); }
+.msg.err { color: #B3261E; }
+:root[data-theme="dark"] .msg.err { color: #FF8A80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .msg.err { color: #FF8A80; } }
+.empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+.foot { font-size: 12px; color: var(--muted); }
+@media (max-width: 430px) {
+  .row { gap: 4px 8px; padding: 10px; }
+  .score { font-size: 22px; }
+  .rank { width: 22px; font-size: 22px; }
+  .no { width: 34px; height: 34px; font-size: 16px; }
+  .top h1 { font-size: 26px; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1 id="h-title"></h1>
+      <p class="sub" id="h-sub"></p>
+    </div>
+    <button id="lang" class="btn" type="button"></button>
+  </header>
+  <p class="disclaimer" id="disclaimer"></p>
+
+  <section id="fixture" class="fixture"></section>
+  <section id="meeting" class="meeting"></section>
+  <section id="importBox" class="import" hidden></section>
+
+  <div id="board" hidden>
+    <div class="tabs" id="tabs" role="tablist"></div>
+  </div>
+  <div id="raceView" hidden></div>
+  <p id="empty" class="empty"></p>
+
+  <details class="panel" id="weights">
+    <summary id="w-title"></summary>
+    <div class="sliders" id="sliders"></div>
+    <button id="w-reset" class="btn" type="button" style="margin-bottom:12px"></button>
+  </details>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+// ==LOGIC-START==
+const FACTORS = ['form', 'jockey', 'trainer', 'draw', 'fitness', 'rating', 'weight'];
+const DEFAULT_WEIGHTS = { form: 35, jockey: 15, trainer: 10, draw: 10, fitness: 10, rating: 15, weight: 5 };
+const FORM_W = [0.35, 0.25, 0.15, 0.10, 0.10, 0.05];
+const PLACE_PTS = { 1: 10, 2: 7, 3: 5, 4: 3, 5: 2 };
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const isNum = (x) => typeof x === 'number' && isFinite(x);
+
+function parseForm(f) {
+  if (Array.isArray(f)) return f.map(Number).filter((x) => isFinite(x));
+  if (typeof f !== 'string') return [];
+  return f.split(/[^0-9]+/).filter(Boolean).map(Number);
+}
+
+// recent placings, latest first -> 0..1
+function formFactor(runner) {
+  const p = parseForm(runner.form).slice(0, 6);
+  if (!p.length) return 0.3;
+  let num = 0, den = 0;
+  p.forEach((pos, i) => { num += FORM_W[i] * (PLACE_PTS[pos] || 0); den += FORM_W[i]; });
+  return clamp01(num / den / 10);
+}
+function drawFactor(runner, dist, n) {
+  if (!isNum(runner.draw) || n < 2) return 0.5;
+  const pos = clamp01((runner.draw - 1) / (n - 1));
+  const slope = dist && dist <= 1200 ? 1 : dist && dist <= 1650 ? 0.6 : 0.3;
+  return 1 - slope * pos;
+}
+function fitnessFactor(days) {
+  if (!isNum(days)) return 0.5;
+  if (days <= 6) return 0.5;
+  if (days <= 13) return 0.8;
+  if (days <= 35) return 1;
+  if (days <= 60) return 0.7;
+  if (days <= 90) return 0.4;
+  return 0.2;
+}
+function relative(v, min, max, invert) {
+  if (!isNum(v) || !isFinite(min) || !isFinite(max) || max === min) return 0.5;
+  const x = (v - min) / (max - min);
+  return clamp01(invert ? 1 - x : x);
+}
+
+function scoreRace(race, weights) {
+  const w = Object.assign({}, DEFAULT_WEIGHTS, weights || {});
+  const rs = race.runners || [];
+  const n = rs.length;
+  const nums = (k) => rs.map((r) => r[k]).filter(isNum);
+  const rMin = Math.min(...nums('rating')), rMax = Math.max(...nums('rating'));
+  const wMin = Math.min(...nums('weight')), wMax = Math.max(...nums('weight'));
+  if (!rs.some((r) => isNum(r.jockeyWin))) w.jockey = 0;
+  if (!rs.some((r) => isNum(r.trainerWin))) w.trainer = 0;
+  const total = FACTORS.reduce((a, k) => a + Math.max(0, w[k]), 0);
+  const rows = rs.map((r) => {
+    const f = {
+      form: formFactor(r),
+      jockey: isNum(r.jockeyWin) ? clamp01(r.jockeyWin / 25) : 0.4,
+      trainer: isNum(r.trainerWin) ? clamp01(r.trainerWin / 20) : 0.4,
+      draw: drawFactor(r, race.distance, n),
+      fitness: fitnessFactor(r.daysOff),
+      rating: relative(r.rating, rMin, rMax, false),
+      weight: relative(r.weight, wMin, wMax, true)
+    };
+    const raw = total > 0 ? FACTORS.reduce((a, k) => a + Math.max(0, w[k]) * f[k], 0) / total : 0;
+    return { runner: r, factors: f, score: Math.round(raw * 1000) / 10 };
+  });
+  const avg = {};
+  FACTORS.forEach((k) => { avg[k] = rows.length ? rows.reduce((a, x) => a + x.factors[k], 0) / rows.length : 0; });
+  rows.forEach((x) => {
+    x.reasons = FACTORS
+      .map((k) => ({ k, edge: (x.factors[k] - avg[k]) * Math.max(0, w[k]) }))
+      .filter((e) => e.edge > 0.8)
+      .sort((a, b) => b.edge - a.edge)
+      .slice(0, 3)
+      .map((e) => e.k);
+  });
+  rows.sort((a, b) => b.score - a.score || (a.runner.no || 0) - (b.runner.no || 0));
+  rows.forEach((x, i) => { x.rank = i + 1; });
+  const gap = rows.length > 1 ? rows[0].score - rows[1].score : 100;
+  const confidence = gap >= 8 ? 'clear' : gap >= 4 ? 'moderate' : 'open';
+  return { rows, confidence, gap: Math.round(gap * 10) / 10 };
+}
+
+function parseDelimited(text) {
+  const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim());
+  if (lines.length < 2) throw new Error('empty');
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const split = (line) => {
+    const out = []; let cur = '', q = false;
+    for (const ch of line) {
+      if (ch === '"') q = !q;
+      else if (ch === delim && !q) { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  };
+  const head = split(lines[0]).map((h) => h.toLowerCase());
+  const races = {};
+  lines.slice(1).forEach((l) => {
+    const c = split(l); const o = {};
+    head.forEach((h, i) => { o[h] = c[i]; });
+    const rn = parseInt(o.race, 10);
+    if (!isFinite(rn)) return;
+    const r = races[rn] || (races[rn] = { no: rn, distance: parseInt(o.distance, 10) || undefined, class: o.class || '', runners: [] });
+    const num = (v) => (v === undefined || v === '' || isNaN(Number(v)) ? undefined : Number(v));
+    r.runners.push({
+      no: num(o.no), name: o.name || '', jockey: o.jockey || '', trainer: o.trainer || '',
+      draw: num(o.draw), weight: num(o.weight), rating: num(o.rating), form: o.form || '',
+      daysOff: num(o.daysoff), jockeyWin: num(o.jockeywin), trainerWin: num(o.trainerwin)
+    });
+  });
+  return { meeting: {}, races: Object.values(races).sort((a, b) => a.no - b.no) };
+}
+
+function parseMeeting(text) {
+  const t = (text || '').trim();
+  if (!t) throw new Error('empty');
+  let data;
+  if (t[0] === '{' || t[0] === '[') {
+    data = JSON.parse(t);
+    if (Array.isArray(data)) data = { meeting: {}, races: data };
+  } else {
+    data = parseDelimited(t);
+  }
+  if (!data || !Array.isArray(data.races) || !data.races.length) throw new Error('no races');
+  data.meeting = data.meeting || {};
+  data.races.forEach((r, i) => {
+    if (!Array.isArray(r.runners) || r.runners.length < 2) throw new Error('race ' + (r.no || i + 1) + ' needs at least 2 runners');
+    r.no = r.no || i + 1;
+    r.runners.forEach((x, j) => { x.no = isNum(x.no) ? x.no : j + 1; x.name = x.name || '#' + x.no; });
+  });
+  return data;
+}
+
+// fictional sample meeting, deterministic
+function sampleMeeting() {
+  let seed = 20261016;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
+  const horses = ['Harbour Light', 'Silver Dragon', 'Jade Runner', 'Lucky Plume', 'Victoria Gold', 'Misty Peak', 'Red Lantern', 'Noble Spirit',
+    'Thunder Bay', 'Pearl Express', 'Morning Star', 'Iron Will', 'Royal Tide', 'Bright Horizon', 'Swift Current', 'Golden Gate', 'Sunny Path', 'Brave Heart',
+    'Ocean Breeze', 'Wild Orchid', 'Star Voyager', 'Fortune Wind', 'Quiet Storm', 'Happy Legend'];
+  const jockeys = ['J. Wong', 'K. Chan', 'M. Lee', 'T. Cheung', 'A. Ho', 'S. Lau', 'P. Ng', 'D. Yip'];
+  const trainers = ['C. Fok', 'L. Tsang', 'R. Mak', 'H. So', 'W. Poon', 'F. Kwok'];
+  const spec = [{ distance: 1200, class: 'Class 4', n: 12 }, { distance: 1600, class: 'Class 3', n: 10 }, { distance: 1800, class: 'Class 2', n: 9 }];
+  let h = 0;
+  const races = spec.map((s, i) => {
+    const draws = Array.from({ length: s.n }, (_, k) => k + 1).sort(() => rand() - 0.5);
+    return {
+      no: i + 1, distance: s.distance, class: s.class, track: 'Turf',
+      runners: Array.from({ length: s.n }, (_, k) => ({
+        no: k + 1, name: horses[h++ % horses.length], jockey: jockeys[ri(0, 7)], trainer: trainers[ri(0, 5)],
+        draw: draws[k], weight: ri(113, 133), rating: ri(52, 78),
+        form: Array.from({ length: 6 }, () => ri(1, 9)).join('-'), daysOff: ri(8, 80),
+        jockeyWin: ri(3, 22), trainerWin: ri(3, 18)
+      }))
+    };
+  });
+  return { meeting: { date: '2026-10-18', venue: 'Sample Course', going: 'Good', note: 'Fictional sample data' }, races };
+}
+
+function suggestions(rows) {
+  const no = (i) => (rows[i] ? rows[i].runner.no : null);
+  return { win: no(0), quinella: [no(0), no(1)], place: rows.slice(0, 3).map((x) => x.runner.no), box4: rows.slice(0, 4).map((x) => x.runner.no) };
+}
+
+// Per-runner assessment built only from the race-card data (not an expert opinion).
+// Returns structured codes; the UI turns them into zh/en sentences.
+function assessRunner(x, race, rows) {
+  const r = x.runner, f = x.factors, n = rows.length;
+  const p = parseForm(r.form).slice(0, 6);
+  const top3 = p.slice(0, 3).filter((v) => v >= 1 && v <= 3).length;
+  const pros = [], cons = [];
+  if (p[0] === 1) pros.push({ c: 'lastWin' });
+  else if (p.length >= 3 && top3 >= 2) pros.push({ c: 'formHot', v: top3 });
+  else if (p.length >= 3 && f.form <= 0.2) cons.push({ c: 'formCold' });
+  if (isNum(r.draw) && n >= 8) {
+    const short = race.distance && race.distance <= 1400;
+    if (r.draw <= 3) pros.push({ c: 'drawGood', v: r.draw });
+    else if (short && r.draw >= n - 2) cons.push({ c: 'drawBad', v: r.draw });
+  }
+  if (isNum(r.daysOff)) {
+    if (r.daysOff >= 14 && r.daysOff <= 35) pros.push({ c: 'restIdeal', v: r.daysOff });
+    else if (r.daysOff <= 6) cons.push({ c: 'quickBack', v: r.daysOff });
+    else if (r.daysOff > 60) cons.push({ c: 'longBreak', v: r.daysOff });
+  }
+  if (isNum(r.rating) && f.rating >= 0.85 && n >= 6) pros.push({ c: 'ratingTop', v: r.rating });
+  else if (isNum(r.rating) && f.rating <= 0.15 && n >= 6) cons.push({ c: 'ratingLow', v: r.rating });
+  if (isNum(r.weight) && f.weight >= 0.85 && n >= 6) pros.push({ c: 'lightWt', v: r.weight });
+  else if (isNum(r.weight) && f.weight <= 0.15 && n >= 6) cons.push({ c: 'heavyWt', v: r.weight });
+  if (isNum(r.jockeyWin) && f.jockey >= 0.8) pros.push({ c: 'jockeyHot', v: r.jockeyWin });
+  if (isNum(r.trainerWin) && f.trainer >= 0.8) pros.push({ c: 'trainerHot', v: r.trainerWin });
+  if (!p.length) cons.push({ c: 'noForm' });
+  const half = Math.ceil(n / 2);
+  const verdict = x.rank === 1 ? 'top' : x.rank <= 3 ? 'contender' : x.rank <= half ? 'mid' : 'outsider';
+  return { verdict, pros: pros.slice(0, 3), cons: cons.slice(0, 2) };
+}
+// Race fixtures (from a public 2026/27 fixture list; always confirm on the HKJC website). ST = Sha Tin, HV = Happy Valley.
+const FIXTURES = [
+  ['2026-10-01', 'ST'], ['2026-10-04', 'ST'], ['2026-10-07', 'HV'], ['2026-10-11', 'ST'], ['2026-10-14', 'HV'],
+  ['2026-10-19', 'ST'], ['2026-10-21', 'HV'], ['2026-10-25', 'ST'], ['2026-10-28', 'ST'],
+  ['2026-11-01', 'HV'], ['2026-11-04', 'HV'], ['2026-11-08', 'ST'], ['2026-11-11', 'HV'], ['2026-11-14', 'ST']
+].map(([date, v]) => ({ date, venue: v }));
+const VENUE = { ST: ['沙田', 'Sha Tin'], HV: ['跑馬地', 'Happy Valley'] };
+const hkToday = (now) => new Date(now || Date.now()).toLocaleDateString('en-CA', { timeZone: 'Asia/Hong_Kong' });
+const dayDiff = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
+const upcomingFixtures = (today, list) => (list || FIXTURES).filter((f) => f.date >= today);
+const weekdayIdx = (d) => new Date(d + 'T00:00:00Z').getUTCDay();
+// ==LOGIC-END==
+</script>
+
+<script>
+// Race card for the 19 Oct 2026 Sha Tin meeting, copied from the public HKJC race card page on 16 Oct 2026. Form is listed latest run first.
+var BUNDLED = { '2026-10-19': {"meeting":{"date":"2026-10-19","venue":"沙田 Sha Tin","going":"","note":"Source: HKJC race card (public page), read 2026-10-16"},"races":[{"no":1,"distance":1800,"class":"Class 5","track":"Turf C+3","time":"12:30","runners":[{"no":1,"name":"禾道威","jockey":"潘頓","trainer":"大衛希斯","draw":8,"weight":135,"rating":40,"form":"7-3-2-4-9-6","daysOff":18},{"no":2,"name":"連連好運","jockey":"艾道拿","trainer":"文家良","draw":3,"weight":134,"rating":39,"form":"1-6-5-2-2-11","daysOff":12},{"no":3,"name":"獎星","jockey":"梁家俊","trainer":"羅富全","draw":4,"weight":133,"rating":38,"form":"8-8-3-3-10-5","daysOff":12},{"no":4,"name":"竣誠駒","jockey":"袁幸堯","trainer":"告東尼","draw":5,"weight":133,"rating":38,"form":"2-9-2-6-7-2","daysOff":12},{"no":5,"name":"競駿勇士","jockey":"霍宏聲","trainer":"方嘉柏","draw":7,"weight":131,"rating":36,"form":"7-10-9-8-5-8","daysOff":12},{"no":6,"name":"我最好","jockey":"何澤堯","trainer":"伍鵬志","draw":2,"weight":130,"rating":35,"form":"3-7-6-4-10-13","daysOff":18},{"no":7,"name":"堅闖","jockey":"黃寶妮","trainer":"告東尼","draw":10,"weight":128,"rating":33,"form":"14-9-11-8-7-10","daysOff":43},{"no":8,"name":"發財金戈","jockey":"周俊樂","trainer":"韋達","draw":11,"weight":127,"rating":32,"form":"2-2-6-10-10-5","daysOff":18},{"no":9,"name":"綫路達飛","jockey":"楊明綸","trainer":"蘇偉賢","draw":1,"weight":125,"rating":30,"form":"8-14-12-14-4-11","daysOff":26},{"no":10,"name":"競駿奔騰","jockey":"奧爾民","trainer":"桂福特","draw":12,"weight":124,"rating":29,"form":"8-12-8-12-11-13","daysOff":107},{"no":11,"name":"君智盛","jockey":"蔡明紹","trainer":"姚本輝","draw":6,"weight":123,"rating":28,"form":"10-10-10-7-14-10","daysOff":15},{"no":12,"name":"精算特殊","jockey":"巫顯東","trainer":"鄭俊偉","draw":13,"weight":123,"rating":28,"form":"6-14-11-12-13-10","daysOff":18},{"no":13,"name":"幸運同行","jockey":"艾兆禮","trainer":"蔡約翰","draw":9,"weight":115,"rating":20,"form":"4-7-13-4-4-2","daysOff":12}]},{"no":2,"distance":1400,"class":"Class 4","track":"Turf C+3","time":"13:00","runners":[{"no":1,"name":"勝兄弟","jockey":"黃寶妮","trainer":"徐雨石","draw":7,"weight":135,"rating":56,"form":"13-12-11-8-14","daysOff":18},{"no":2,"name":"超拍檔","jockey":"梁家俊","trainer":"呂健威","draw":5,"weight":134,"rating":55,"form":"3-13-12-12-14-1","daysOff":18},{"no":3,"name":"心雄雄","jockey":"楊明綸","trainer":"大衛希斯","draw":14,"weight":132,"rating":53,"form":"9-9-7-11-3-7","daysOff":15},{"no":4,"name":"鼓浪高風","jockey":"何澤堯","trainer":"伍鵬志","draw":13,"weight":131,"rating":52},{"no":5,"name":"精益大將","jockey":"金誠剛","trainer":"姚本輝","draw":8,"weight":131,"rating":52},{"no":6,"name":"飛馬精英","jockey":"霍宏聲","trainer":"廖康銘","draw":6,"weight":131,"rating":52,"form":"10","daysOff":15},{"no":7,"name":"紫荊飛躍","jockey":"周俊樂","trainer":"游達榮","draw":12,"weight":131,"rating":52},{"no":8,"name":"確好勁","jockey":"艾兆禮","trainer":"甘敏斯","draw":4,"weight":129,"rating":50,"form":"3-9-8-5-6-12","daysOff":22},{"no":9,"name":"莊家班","jockey":"黃智弘","trainer":"沈集成","draw":2,"weight":129,"rating":50,"form":"6-5-11-4-7-11","daysOff":18},{"no":10,"name":"將傲","jockey":"潘頓","trainer":"韋達","draw":3,"weight":128,"rating":49,"form":"4-4-4-3-7","daysOff":26},{"no":11,"name":"盛勢威楓","jockey":"潘明輝","trainer":"賀賢","draw":1,"weight":128,"rating":49,"form":"3-7-13-3-4-1","daysOff":15},{"no":12,"name":"潮流勇駒","jockey":"艾道拿","trainer":"黎昭昇","draw":11,"weight":127,"rating":48,"form":"6-2-8-7-10-8","daysOff":15},{"no":13,"name":"明亮天下","jockey":"蔡明紹","trainer":"羅富全","draw":10,"weight":121,"rating":42,"form":"12-3-10-14-12-14","daysOff":163},{"no":14,"name":"健康小馬","jockey":"鍾易禮","trainer":"鄭俊偉","draw":9,"weight":119,"rating":40,"form":"9-11-13-6-11-14","daysOff":26}]},{"no":3,"distance":1800,"class":"Class 4","track":"Turf C+3","time":"13:30","runners":[{"no":1,"name":"同心同夢","jockey":"田泰安","trainer":"桂福特","draw":9,"weight":135,"rating":59,"form":"3-10-11-6-7-13","daysOff":15},{"no":2,"name":"捷威","jockey":"何澤堯","trainer":"姚本輝","draw":7,"weight":135,"rating":59,"form":"2-9-1-2-5-4","daysOff":18},{"no":3,"name":"雙贏","jockey":"蔡明紹","trainer":"文家良","draw":1,"weight":134,"rating":58,"form":"8-1-2-5-3-10","daysOff":114},{"no":4,"name":"捷駿","jockey":"梁家俊","trainer":"沈集成","draw":13,"weight":134,"rating":58,"form":"13-13-10-8","daysOff":15},{"no":5,"name":"凝妙星","jockey":"潘頓","trainer":"大衛希斯","draw":5,"weight":128,"rating":52,"form":"6-1-6-6-6-8","daysOff":26},{"no":6,"name":"幸運威龍","jockey":"潘明輝","trainer":"羅富全","draw":6,"weight":127,"rating":51,"form":"7-2-2-6-9-6","daysOff":36},{"no":7,"name":"風火恆雲","jockey":"金誠剛","trainer":"姚本輝","draw":3,"weight":127,"rating":51,"form":"10-11-5-1-2-8","daysOff":96},{"no":8,"name":"夢照發","jockey":"巴度","trainer":"黎昭昇","draw":14,"weight":125,"rating":49,"form":"9-1-5-8-14-1","daysOff":18},{"no":9,"name":"好運年","jockey":"班德禮","trainer":"葉楚航","draw":4,"weight":124,"rating":48,"form":"6-2-4-3-3-2","daysOff":18},{"no":10,"name":"玄宇宙","jockey":"楊明綸","trainer":"丁冠豪","draw":10,"weight":123,"rating":47,"form":"9-13-11","daysOff":36},{"no":11,"name":"智多多寶","jockey":"霍宏聲","trainer":"廖康銘","draw":12,"weight":123,"rating":47,"form":"3-5-9-8-9-9","daysOff":18},{"no":12,"name":"揀馬之皇","jockey":"艾兆禮","trainer":"賀賢","draw":11,"weight":120,"rating":44,"form":"4-4-12-12-12-11","daysOff":26},{"no":13,"name":"小飛俠","jockey":"鍾易禮","trainer":"蔡約翰","draw":8,"weight":118,"rating":42,"form":"14-14-12-7-9-2","daysOff":18},{"no":14,"name":"齊歡最樂","jockey":"黃寶妮","trainer":"伍鵬志","draw":2,"weight":117,"rating":41,"form":"8-12-9-1-13-5","daysOff":18}]},{"no":4,"distance":1400,"class":"Class 4","track":"Turf C+3","time":"14:00","runners":[{"no":1,"name":"星價","jockey":"巫顯東","trainer":"蘇偉賢","draw":4,"weight":135,"rating":57,"form":"8-9-12-13-9-11","daysOff":18},{"no":2,"name":"表廠傳奇","jockey":"蔡明紹","trainer":"徐雨石","draw":8,"weight":134,"rating":56,"form":"8-12-14-14","daysOff":22},{"no":3,"name":"潮州高球","jockey":"班德禮","trainer":"羅富全","draw":13,"weight":132,"rating":54,"form":"1-11-12","daysOff":22},{"no":4,"name":"加州熱浪","jockey":"艾道拿","trainer":"巫偉傑","draw":5,"weight":131,"rating":53,"form":"4-5-8-5-5-7","daysOff":15},{"no":5,"name":"金鋼狼","jockey":"潘明輝","trainer":"大衛希斯","draw":12,"weight":130,"rating":52},{"no":6,"name":"醒先生","jockey":"周俊樂","trainer":"姚本輝","draw":7,"weight":130,"rating":52},{"no":7,"name":"成就非凡","jockey":"潘頓","trainer":"黎昭昇","draw":10,"weight":130,"rating":52,"form":"4","daysOff":22},{"no":8,"name":"風繼續吹","jockey":"金誠剛","trainer":"鄭俊偉","draw":2,"weight":127,"rating":49,"form":"14-8-11-1-11-7","daysOff":15},{"no":9,"name":"奧林比安","jockey":"黃智弘","trainer":"伍鵬志","draw":9,"weight":126,"rating":48,"form":"8-11","daysOff":107},{"no":10,"name":"龍騰盛世","jockey":"希威森","trainer":"呂健威","draw":1,"weight":126,"rating":48,"form":"5-5","daysOff":107},{"no":11,"name":"熱氣球","jockey":"奧爾民","trainer":"韋達","draw":11,"weight":126,"rating":48,"form":"5-4-10-5-4","daysOff":22},{"no":12,"name":"隋我同來","jockey":"田泰安","trainer":"桂福特","draw":3,"weight":120,"rating":42,"form":"5-10-7-2-2-4","daysOff":22},{"no":13,"name":"翠湖烈風","jockey":"艾兆禮","trainer":"賀賢","draw":14,"weight":118,"rating":40,"form":"8-2-2-7-10-3","daysOff":18},{"no":14,"name":"久久為軍","jockey":"鍾易禮","trainer":"告東尼","draw":6,"weight":118,"rating":40,"form":"4-7-6-10-13-4","daysOff":18}]},{"no":5,"distance":1200,"class":"Class 4","track":"Turf C+3","time":"14:30","runners":[{"no":1,"name":"君子","jockey":"梁家俊","trainer":"文家良","draw":9,"weight":135,"rating":59,"form":"12-12-1-13-13-14","daysOff":96},{"no":2,"name":"狼來了","jockey":"希威森","trainer":"沈集成","draw":2,"weight":132,"rating":56,"form":"2-6-9-3-11-7","daysOff":15},{"no":3,"name":"宇宙威龍","jockey":"巫顯東","trainer":"徐雨石","draw":12,"weight":128,"rating":52},{"no":4,"name":"幸福特約","jockey":"艾兆禮","trainer":"伍鵬志","draw":10,"weight":127,"rating":51,"form":"4-11","daysOff":15},{"no":5,"name":"銳行星","jockey":"黃智弘","trainer":"方嘉柏","draw":8,"weight":127,"rating":51,"form":"6-14-2","daysOff":128},{"no":6,"name":"天風雲","jockey":"周俊樂","trainer":"丁冠豪","draw":6,"weight":127,"rating":51,"form":"5-11","daysOff":15},{"no":7,"name":"遨遊首領","jockey":"袁幸堯","trainer":"姚本輝","draw":7,"weight":127,"rating":51,"form":"7","daysOff":242},{"no":8,"name":"彪形勇將","jockey":"奧爾民","trainer":"蘇偉賢","draw":11,"weight":126,"rating":50,"form":"3-13-6","daysOff":120},{"no":9,"name":"機不可失","jockey":"楊明綸","trainer":"呂健威","draw":4,"weight":126,"rating":50,"form":"11-8-3-3","daysOff":242},{"no":10,"name":"星光大道","jockey":"霍宏聲","trainer":"韋達","draw":3,"weight":123,"rating":47,"form":"3-8-7-6-3","daysOff":22},{"no":11,"name":"雷神太保","jockey":"艾道拿","trainer":"黎昭昇","draw":5,"weight":122,"rating":46,"form":"7-3-9-5-6-11","daysOff":22},{"no":12,"name":"萬里雲","jockey":"潘明輝","trainer":"賀賢","draw":1,"weight":116,"rating":40,"form":"1-7-12-6-8-5","daysOff":18}]},{"no":6,"distance":1000,"class":"Class 4","track":"Turf C+3","time":"15:00","runners":[{"no":1,"name":"當家精彩","jockey":"袁幸堯","trainer":"韋達","draw":9,"weight":135,"rating":59,"form":"5-3-2-5-2-5","daysOff":131},{"no":2,"name":"高度評價","jockey":"梁家俊","trainer":"巫偉傑","draw":3,"weight":133,"rating":57,"form":"8-11-11-12","daysOff":36},{"no":3,"name":"紅海旺","jockey":"潘頓","trainer":"文家良","draw":14,"weight":132,"rating":56,"form":"1-2-3-7-14","daysOff":36},{"no":4,"name":"飛來閃耀","jockey":"艾道拿","trainer":"賀賢","draw":12,"weight":132,"rating":56,"form":"11-3-8-10-2-4","daysOff":134},{"no":5,"name":"晨曦鳳凰","jockey":"楊明綸","trainer":"伍鵬志","draw":10,"weight":128,"rating":52},{"no":6,"name":"鬥破蒼穹","jockey":"周俊樂","trainer":"游達榮","draw":5,"weight":128,"rating":52},{"no":7,"name":"永福","jockey":"奧爾民","trainer":"姚本輝","draw":13,"weight":126,"rating":50,"form":"11-6-3-3","daysOff":18},{"no":8,"name":"飛來霸","jockey":"黃寶妮","trainer":"賀賢","draw":2,"weight":125,"rating":49,"form":"2-10-12-6-11-1","daysOff":22},{"no":9,"name":"共同享樂","jockey":"鍾易禮","trainer":"羅富全","draw":11,"weight":123,"rating":47,"form":"13-8-10","daysOff":8},{"no":10,"name":"新力驕","jockey":"巴度","trainer":"蘇偉賢","draw":6,"weight":123,"rating":47,"form":"1-3-6-2-7-3","daysOff":8},{"no":11,"name":"天寶威威","jockey":"田泰安","trainer":"徐雨石","draw":4,"weight":122,"rating":46,"form":"6-2-13-9-12-6","daysOff":18},{"no":12,"name":"杭至尊","jockey":"班德禮","trainer":"葉楚航","draw":8,"weight":119,"rating":43,"form":"3-11-5-14-8-7","daysOff":22},{"no":13,"name":"金創福威","jockey":"潘明輝","trainer":"黎昭昇","draw":7,"weight":118,"rating":42,"form":"12-13-5-7-7-7","daysOff":15},{"no":14,"name":"精算奕然","jockey":"巫顯東","trainer":"鄭俊偉","draw":1,"weight":116,"rating":40,"form":"7-8-12-11-13-12","daysOff":40}]},{"no":7,"distance":1200,"class":"Class 4","track":"Turf C+3","time":"15:35","runners":[{"no":1,"name":"鼓浪好友","jockey":"田泰安","trainer":"桂福特","draw":1,"weight":135,"rating":58,"form":"13-3-3-3-9-2","daysOff":43},{"no":2,"name":"常嚐發財","jockey":"周俊樂","trainer":"巫偉傑","draw":12,"weight":132,"rating":55,"form":"1-11-10-8-3-3","daysOff":22},{"no":3,"name":"實力加","jockey":"奧爾民","trainer":"賀賢","draw":7,"weight":132,"rating":55,"form":"1-3-3-5-5-2","daysOff":18},{"no":4,"name":"祥勝鷹駒","jockey":"潘頓","trainer":"游達榮","draw":3,"weight":131,"rating":54,"form":"2","daysOff":120},{"no":5,"name":"威力飛騰","jockey":"巫顯東","trainer":"蘇偉賢","draw":2,"weight":130,"rating":53,"form":"12-12-11-13-12","daysOff":99},{"no":6,"name":"八玲瓏","jockey":"艾兆禮","trainer":"蔡約翰","draw":11,"weight":130,"rating":53,"form":"9-3","daysOff":18},{"no":7,"name":"非凡時刻","jockey":"袁幸堯","trainer":"伍鵬志","draw":10,"weight":129,"rating":52,"form":"8-6-5-1-8-4","daysOff":110},{"no":8,"name":"舞林盛宴","jockey":"何澤堯","trainer":"方嘉柏","draw":5,"weight":125,"rating":48,"form":"6-9-4","daysOff":36},{"no":9,"name":"綠茵明珠","jockey":"梁家俊","trainer":"呂健威","draw":6,"weight":124,"rating":47,"form":"13-4-10-10","daysOff":36},{"no":10,"name":"嘉應光彩","jockey":"潘明輝","trainer":"大衛希斯","draw":8,"weight":124,"rating":47,"form":"2-5-2-9-13-6","daysOff":18},{"no":11,"name":"星光快驅","jockey":"希威森","trainer":"黎昭昇","draw":4,"weight":118,"rating":41,"form":"3-6-9-3-10-6","daysOff":117},{"no":12,"name":"豪邁先登","jockey":"楊明綸","trainer":"葉楚航","draw":9,"weight":117,"rating":40,"form":"7-12-8-7-11-5","daysOff":18}]},{"no":8,"distance":1600,"class":"Group 2","track":"Turf C+3","time":"16:05","runners":[{"no":1,"name":"遨遊氣泡","jockey":"周俊樂","trainer":"姚本輝","draw":11,"weight":135,"rating":128,"form":"5-3-5-3-1-2","daysOff":176},{"no":2,"name":"祝願","jockey":"潘頓","trainer":"廖康銘","draw":3,"weight":131,"rating":124,"form":"1-2-4-4-6-4","daysOff":176},{"no":3,"name":"驕陽明駒","jockey":"艾兆禮","trainer":"蔡約翰","draw":7,"weight":125,"rating":118,"form":"8-6-2-2-2-5","daysOff":22},{"no":5,"name":"美麗同享","jockey":"艾道拿","trainer":"告東尼","draw":10,"weight":121,"rating":114,"form":"1-1-2-5-11-6","daysOff":99},{"no":6,"name":"手機錶霸","jockey":"潘明輝","trainer":"呂健威","draw":1,"weight":116,"rating":109,"form":"7-10-10-5-8-1","daysOff":22},{"no":7,"name":"光年魅力","jockey":"田泰安","trainer":"游達榮","draw":2,"weight":115,"rating":106,"form":"2-1-12-4-9-3","daysOff":120},{"no":8,"name":"紫荊盛勢","jockey":"梁家俊","trainer":"羅富全","draw":8,"weight":115,"rating":106,"form":"3-8-3-1-1-4","daysOff":22},{"no":9,"name":"太陽勇士","jockey":"班德禮","trainer":"大衛希斯","draw":5,"weight":115,"rating":102,"form":"5-7-4-1-7-2","daysOff":22},{"no":10,"name":"首飾天空","jockey":"巴度","trainer":"蔡約翰","draw":4,"weight":115,"rating":101,"form":"1-4-1-1-1-2","daysOff":18},{"no":11,"name":"睿盛人生","jockey":"黃智弘","trainer":"方嘉柏","draw":9,"weight":115,"rating":98,"form":"2-7-3-12-14-4","daysOff":33},{"no":12,"name":"天將龍駒","jockey":"楊明綸","trainer":"呂健威","draw":6,"weight":115,"rating":96,"form":"5-3-8-3-1-5","daysOff":148}]},{"no":9,"distance":1200,"class":"Class 3","track":"Turf C+3","time":"16:40","runners":[{"no":1,"name":"堅先生","jockey":"田泰安","trainer":"桂福特","draw":11,"weight":135,"rating":80,"form":"1-1-6-1","daysOff":114},{"no":2,"name":"醒目高球","jockey":"班德禮","trainer":"羅富全","draw":3,"weight":131,"rating":76,"form":"14-4-1-1-3-1","daysOff":141},{"no":3,"name":"馬達","jockey":"梁家俊","trainer":"巫偉傑","draw":6,"weight":130,"rating":75,"form":"8-12-1-3-1-3","daysOff":12},{"no":4,"name":"魅力奔騰","jockey":"霍宏聲","trainer":"呂健威","draw":10,"weight":125,"rating":70,"form":"12-4-10-7","daysOff":134},{"no":5,"name":"天時威威","jockey":"蔡明紹","trainer":"徐雨石","draw":8,"weight":125,"rating":70},{"no":6,"name":"神鵰","jockey":"周俊樂","trainer":"甘敏斯","draw":2,"weight":123,"rating":68,"form":"8-7-11","daysOff":15},{"no":7,"name":"金金小子","jockey":"何澤堯","trainer":"文家良","draw":5,"weight":123,"rating":68,"form":"6-7-2-7-5-3","daysOff":18},{"no":8,"name":"神衝萬里","jockey":"潘頓","trainer":"告東尼","draw":4,"weight":122,"rating":67,"form":"4","daysOff":18},{"no":9,"name":"超力量","jockey":"艾道拿","trainer":"黎昭昇","draw":12,"weight":122,"rating":67,"form":"8-12-9-12-3-7","daysOff":36},{"no":10,"name":"逍遙人生","jockey":"希威森","trainer":"沈集成","draw":1,"weight":120,"rating":65,"form":"1-3-6-2-8-2","daysOff":36},{"no":11,"name":"千杯不醉","jockey":"袁幸堯","trainer":"廖康銘","draw":9,"weight":117,"rating":62,"form":"3-8-8-9-10-2","daysOff":18},{"no":12,"name":"可靠大師","jockey":"黃寶妮","trainer":"大衛希斯","draw":7,"weight":116,"rating":61,"form":"7-11-12-2-12-1","daysOff":12}]},{"no":10,"distance":1600,"class":"Class 3","track":"Turf C+3","time":"17:15","runners":[{"no":1,"name":"包裝戰仕","jockey":"潘頓","trainer":"沈集成","draw":9,"weight":135,"rating":80,"form":"1-1-2-5-6-11","daysOff":22},{"no":2,"name":"榮駿大道","jockey":"袁幸堯","trainer":"葉楚航","draw":14,"weight":133,"rating":78,"form":"10-9-5-1-11-2","daysOff":15},{"no":3,"name":"活力拍檔","jockey":"何澤堯","trainer":"呂健威","draw":13,"weight":131,"rating":76,"form":"2-2-4-2-1-3","daysOff":22},{"no":4,"name":"英駿飛駒","jockey":"艾道拿","trainer":"游達榮","draw":7,"weight":130,"rating":75,"form":"4-4-9-10-2-7","daysOff":22},{"no":5,"name":"名揚四海","jockey":"田泰安","trainer":"巫偉傑","draw":11,"weight":126,"rating":71,"form":"12-1-3-3-5-5","daysOff":22},{"no":6,"name":"開心福駒","jockey":"周俊樂","trainer":"桂福特","draw":8,"weight":123,"rating":68,"form":"14-7","daysOff":8},{"no":7,"name":"喜悅歡欣","jockey":"奧爾民","trainer":"廖康銘","draw":3,"weight":122,"rating":67,"form":"1-3-1","daysOff":43},{"no":8,"name":"火焰閃爍","jockey":"潘明輝","trainer":"大衛希斯","draw":1,"weight":121,"rating":66,"form":"7-13-6-7-4-2","daysOff":18},{"no":9,"name":"縱橫天地","jockey":"梁家俊","trainer":"黎昭昇","draw":4,"weight":121,"rating":66,"form":"12-9","daysOff":18},{"no":10,"name":"龍城上將","jockey":"金誠剛","trainer":"韋達","draw":6,"weight":119,"rating":64,"form":"8-8","daysOff":22},{"no":11,"name":"紫荊拼搏","jockey":"班德禮","trainer":"大衛希斯","draw":10,"weight":119,"rating":64,"form":"3-12-5-7-6-1","daysOff":22},{"no":12,"name":"天然數字","jockey":"蔡明紹","trainer":"徐雨石","draw":5,"weight":118,"rating":63,"form":"6-13-7-10-11-5","daysOff":18},{"no":13,"name":"北斗福星","jockey":"艾兆禮","trainer":"方嘉柏","draw":12,"weight":117,"rating":62,"form":"5-3-8-3-6-5","daysOff":15},{"no":14,"name":"八仟好運","jockey":"巴度","trainer":"蔡約翰","draw":2,"weight":116,"rating":61,"form":"4-2-1-2-3-5","daysOff":18}]},{"no":11,"distance":1400,"class":"Class 3","track":"Turf C+3","time":"17:50","runners":[{"no":1,"name":"美麗星晨","jockey":"黃寶妮","trainer":"告東尼","draw":1,"weight":135,"rating":85,"form":"9-2-9-6-13-7","daysOff":18},{"no":2,"name":"極上紗瓏","jockey":"潘明輝","trainer":"羅富全","draw":7,"weight":135,"rating":85,"form":"3-4-1-1-1-1","daysOff":22},{"no":3,"name":"千帆駒","jockey":"田泰安","trainer":"蘇偉賢","draw":12,"weight":134,"rating":84,"form":"8-3-3-1-2-6","daysOff":128},{"no":4,"name":"會當凌","jockey":"梁家俊","trainer":"巫偉傑","draw":10,"weight":133,"rating":83,"form":"12-7-9-10-14-1","daysOff":18},{"no":5,"name":"安都","jockey":"艾兆禮","trainer":"蔡約翰","draw":3,"weight":133,"rating":83,"form":"11-1-2-3-3-8","daysOff":99},{"no":6,"name":"友瑩仁","jockey":"袁幸堯","trainer":"伍鵬志","draw":6,"weight":132,"rating":82,"form":"1-4-2-1-4-1","daysOff":22},{"no":7,"name":"加利斯","jockey":"霍宏聲","trainer":"韋達","draw":8,"weight":132,"rating":82},{"no":8,"name":"櫻花酒杯","jockey":"何澤堯","trainer":"呂健威","draw":2,"weight":131,"rating":81,"form":"1-1-4-1-3-3","daysOff":43},{"no":9,"name":"增強","jockey":"奧爾民","trainer":"賀賢","draw":5,"weight":131,"rating":81,"form":"4-4-1-2-3-5","daysOff":22},{"no":10,"name":"超寫意","jockey":"周俊樂","trainer":"姚本輝","draw":9,"weight":130,"rating":80,"form":"2-2-1-9-4-1","daysOff":18},{"no":11,"name":"仁心星","jockey":"黃智弘","trainer":"方嘉柏","draw":4,"weight":130,"rating":80,"form":"10-3-3-6-5-4","daysOff":183},{"no":12,"name":"天星","jockey":"艾道拿","trainer":"大衛希斯","draw":14,"weight":122,"rating":72,"form":"7-6-13-8-10-7","daysOff":26},{"no":13,"name":"嵐臣","jockey":"潘頓","trainer":"沈集成","draw":11,"weight":121,"rating":71,"form":"1-1-3-2-4-10","daysOff":36},{"no":14,"name":"佛亮老撾","jockey":"巴度","trainer":"桂福特","draw":13,"weight":115,"rating":62,"form":"9-7-1-5-6-9","daysOff":18}]}]} };
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'hk-race-tips-v1';
+  var LKEY = 'hk-race-tips-lang';
+  var lang = 'zh';
+  try { if (localStorage.getItem(LKEY) === 'en') lang = 'en'; } catch (e) { /* ignore */ }
+  function t(zh, en) { return lang === 'zh' ? zh : en; }
+  var $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  var state = { data: null, weights: Object.assign({}, DEFAULT_WEIGHTS), race: 0, fixture: null };
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && saved.fixture) state.fixture = saved.fixture;
+    if (saved && saved.data) { state.data = parseMeeting(JSON.stringify(saved.data)); state.weights = Object.assign({}, DEFAULT_WEIGHTS, saved.weights || {}); }
+    else if (saved && saved.weights) state.weights = Object.assign({}, DEFAULT_WEIGHTS, saved.weights);
+  } catch (e) { /* start fresh */ }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ data: state.data, weights: state.weights, fixture: state.fixture })); } catch (e) { /* ignore */ } }
+
+  var FNAME = {
+    form: ['近績', 'Recent form'], jockey: ['騎師勝率', 'Jockey win rate'], trainer: ['練馬師勝率', 'Trainer win rate'],
+    draw: ['檔位', 'Draw'], fitness: ['休後狀態', 'Freshness'], rating: ['評分', 'Rating'], weight: ['負磅', 'Weight carried']
+  };
+  var CONF = { clear: ['明顯領先', 'Clear favourite'], moderate: ['稍佔優', 'Slight edge'], open: ['混戰，難分高下', 'Open race, tight field'] };
+  function fname(k) { return FNAME[k][lang === 'zh' ? 0 : 1]; }
+
+  function renderStatic() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-HK' : 'en';
+    document.title = t('香港賽馬貼士', 'HK Race Tips');
+    $('#h-title').textContent = t('香港賽馬貼士', 'HK Race Tips');
+    $('#h-sub').textContent = t('用近績、檔位、騎練數據計出參考排名', 'Reference ranking from form, draw, jockey and trainer data');
+    $('#lang').textContent = lang === 'zh' ? 'English' : '廣東話';
+    $('#disclaimer').textContent = t('排名只係根據你提供嘅資料用公式計算，只供參考，不保證結果，亦唔係投注建議。請量力而為，適可而止。未滿 18 歲不可投注。',
+      'Rankings are calculated by formula from the data you provide. For reference only, with no guarantee of results and no betting advice. Please gamble responsibly. You must be 18 or over to bet.');
+    $('#w-title').textContent = t('調校權重（你覺得邊樣重要啲？）', 'Adjust weights (what matters most to you?)');
+    $('#w-reset').textContent = t('還原預設', 'Reset to default');
+    $('#foot').textContent = t('資料儲存喺你部機嘅瀏覽器，唔會上傳。示範資料係虛構嘅。', 'Data stays in your browser and is never uploaded. Sample data is fictional.');
+    $('#empty').textContent = t('未有賽事資料。㩒「載入示範」睇下效果，或者㩒「匯入資料」貼上你嘅賽事資料。', 'No race data yet. Tap "Load sample" to see how it works, or "Import data" to paste your own.');
+    renderSliders();
+  }
+
+  var WD = { zh: ['日', '一', '二', '三', '四', '五', '六'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] };
+  function fixLabel(f, today) {
+    var d = f.date.slice(5).replace('-', '/');
+    var wd = lang === 'zh' ? '星期' + WD.zh[weekdayIdx(f.date)] : WD.en[weekdayIdx(f.date)];
+    var diff = dayDiff(today, f.date);
+    var rel = diff === 0 ? t('今日', 'today') : diff === 1 ? t('明日', 'tomorrow') : t(diff + ' 日後', 'in ' + diff + ' days');
+    return { text: d + ' ' + wd + ' · ' + VENUE[f.venue][lang === 'zh' ? 0 : 1], rel: rel };
+  }
+  function renderFixture() {
+    var today = hkToday();
+    var up = upcomingFixtures(today);
+    var box = $('#fixture');
+    if (!up.length) {
+      box.innerHTML = '<div class="near"><b>' + t('賽期表已過期', 'Fixture list has ended') + '</b></div><p class="note">' + t('請到馬會網站查看最新賽期。', 'Please check the HKJC website for later fixtures.') + '</p>';
+      return;
+    }
+    if (!state.fixture || state.fixture < today || !up.some(function (f) { return f.date === state.fixture; })) state.fixture = up[0].date;
+    var cur = up.filter(function (f) { return f.date === state.fixture; })[0];
+    var L = fixLabel(cur, today);
+    box.innerHTML = '<div class="near"><b>' + (cur === up[0] ? t('最近賽事：', 'Next meeting: ') : t('已揀賽事：', 'Selected: ') ) + esc(L.text) + '</b><span>' + esc(L.rel) + '</span></div>' +
+      '<label for="fx">' + t('揀賽事日', 'CHOOSE RACE DAY') + '</label><select id="fx">' +
+      up.slice(0, 8).map(function (f, i) {
+        var l = fixLabel(f, today);
+        return '<option value="' + f.date + '"' + (f.date === state.fixture ? ' selected' : '') + '>' + (i === 0 ? t('（最近）', '(nearest) ') : '') + esc(l.text) + ' · ' + esc(l.rel) + '</option>';
+      }).join('') + '</select>' +
+      (BUNDLED[state.fixture] ? '<button class="btn primary" id="fx-load" type="button">' + t('載入呢場賽事排位表（11 場）', 'Load the race card for this meeting (11 races)') + '</button>' +
+        '<p class="note">' + t('排位表取自馬會公開網頁（2026-10-16 讀取），未包括騎師同練馬師勝率，所以呢兩項唔計入排名。賽事可能有更改或退出馬匹，請以馬會最新排位表為準。',
+          'Race card taken from the public HKJC page (read on 2026-10-16). It has no jockey or trainer win rates, so those two factors are left out. Scratchings and changes are possible, so check the latest HKJC race card.') + '</p>' : '') +
+      '<p class="note">' + t('日期取自公開賽期表，賽事可能因天氣或其他原因更改，請以馬會公佈為準。時間按香港時間計。',
+        'Dates come from a public fixture list. Meetings can change (weather and so on), so confirm with the HKJC. Times are Hong Kong time.') + '</p>';
+    var fl = $('#fx-load');
+    if (fl) fl.addEventListener('click', function () { setData(JSON.parse(JSON.stringify(BUNDLED[state.fixture]))); });
+    $('#fx').addEventListener('change', function () { state.fixture = this.value; save(); renderFixture(); });
+  }
+
+  function renderMeeting() {
+    var m = state.data && state.data.meeting || {};
+    var info = state.data
+      ? '<b>' + esc(m.venue || t('賽事日', 'Race day')) + (m.date ? ' · ' + esc(m.date) : '') + '</b><span>' +
+        esc([m.going ? t('場地：', 'Going: ') + m.going : '', m.note || '', state.data.races.length + t(' 場', ' races')].filter(Boolean).join(' · ')) + '</span>'
+      : '<b>' + t('賽事資料', 'Race meeting') + '</b><span>' + t('未載入', 'Nothing loaded') + '</span>';
+    $('#meeting').innerHTML = '<div class="info">' + info + '</div><div class="actions">' +
+      '<button class="btn" id="b-sample" type="button">' + t('載入示範', 'Load sample') + '</button>' +
+      '<button class="btn primary" id="b-import" type="button">' + t('匯入資料', 'Import data') + '</button>' +
+      (state.data ? '<button class="btn" id="b-clear" type="button">' + t('清除', 'Clear') + '</button>' : '') + '</div>';
+    $('#b-sample').addEventListener('click', function () { setData(sampleMeeting()); });
+    $('#b-import').addEventListener('click', toggleImport);
+    var c = $('#b-clear'); if (c) c.addEventListener('click', function () { state.data = null; save(); renderAll(); });
+  }
+
+  var TEMPLATE_CSV = 'race,distance,class,no,name,jockey,trainer,draw,weight,rating,form,daysOff,jockeyWin,trainerWin\n' +
+    '1,1200,Class 4,1,Horse A,Jockey X,Trainer Y,3,125,60,1-2-4-3-6-2,21,14,10\n' +
+    '1,1200,Class 4,2,Horse B,Jockey Z,Trainer W,8,120,55,5-3-7-2-4-9,35,8,6\n';
+
+  function toggleImport() {
+    var box = $('#importBox');
+    if (!box.hidden) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<b>' + t('匯入賽事資料', 'Import race data') + '</b>' +
+      '<p class="help">' + t('貼上 CSV（可直接由 Excel 複製）或 JSON。每行一匹馬，近績由最近一仗開始，例如 ', 'Paste CSV (copy straight from Excel) or JSON. One row per runner, form listed latest run first, e.g. ') + '<code>1-3-2-5</code>' +
+      t('。欄位：', '. Columns: ') + '<code>race, distance, class, no, name, jockey, trainer, draw, weight, rating, form, daysOff, jockeyWin, trainerWin</code>' +
+      t('。缺少嘅欄位會用中性分數計。', '. Missing columns get a neutral score.') + '</p>' +
+      '<textarea id="imp-text" spellcheck="false" aria-label="' + t('賽事資料', 'Race data') + '"></textarea>' +
+      '<div class="row-actions"><button class="btn primary" id="imp-go" type="button">' + t('套用', 'Apply') + '</button>' +
+      '<button class="btn" id="imp-tpl" type="button">' + t('填入範本', 'Fill template') + '</button>' +
+      '<button class="btn" id="imp-exp" type="button">' + t('匯出目前資料', 'Export current data') + '</button></div>' +
+      '<p class="msg" id="imp-msg" role="status"></p>';
+    $('#imp-tpl').addEventListener('click', function () { $('#imp-text').value = TEMPLATE_CSV; });
+    $('#imp-exp').addEventListener('click', function () {
+      $('#imp-text').value = state.data ? JSON.stringify(state.data, null, 1) : '';
+      msg(state.data ? t('已將目前資料放入文字框，可以複製。', 'Current data is in the box. Copy it from there.') : t('未有資料可匯出。', 'Nothing to export.'), !state.data);
+    });
+    $('#imp-go').addEventListener('click', function () {
+      try {
+        setData(parseMeeting($('#imp-text').value));
+        $('#importBox').hidden = true;
+      } catch (e) {
+        msg(t('讀唔到資料：', 'Could not read the data: ') + (e && e.message ? e.message : e), true);
+      }
+    });
+  }
+  function msg(text, err) { var m = $('#imp-msg'); if (m) { m.textContent = text; m.className = 'msg' + (err ? ' err' : ''); } }
+
+  function setData(d) {
+    d.meeting = d.meeting || {};
+    if (!d.meeting.date && state.fixture) {
+      var f = FIXTURES.filter(function (x) { return x.date === state.fixture; })[0];
+      if (f) { d.meeting.date = f.date; d.meeting.venue = VENUE[f.venue][lang === 'zh' ? 0 : 1]; }
+    }
+    state.data = d; state.race = 0; save(); renderAll();
+  }
+
+  function renderTabs() {
+    var has = !!state.data;
+    $('#board').hidden = !has; $('#raceView').hidden = !has; $('#empty').hidden = has;
+    if (!has) return;
+    $('#tabs').innerHTML = state.data.races.map(function (r, i) {
+      return '<button class="tab" role="tab" type="button" data-i="' + i + '" aria-selected="' + (i === state.race) + '">R' + esc(r.no) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+      b.addEventListener('click', function () { state.race = +b.getAttribute('data-i'); renderTabs(); renderRace(); });
+    });
+  }
+
+  function renderRace() {
+    if (!state.data) return;
+    var race = state.data.races[state.race];
+    var res = scoreRace(race, state.weights);
+    var sg = suggestions(res.rows);
+    var head = '<div class="racehead"><h2>' + t('第 ', 'Race ') + esc(race.no) + t(' 場', '') + '</h2><span>' +
+      esc([race.distance ? race.distance + 'm' : '', race.class || '', race.track || '', res.rows.length + t(' 匹馬', ' runners')].filter(Boolean).join(' · ')) + '</span></div>';
+    var picks = '<section class="picks" aria-label="' + t('參考組合', 'Suggested combinations') + '"><h3>' + t('參考組合（馬號）', 'Reference combinations (horse numbers)') + '</h3>' +
+      '<div class="pickgrid">' +
+      pick(t('獨贏', 'Win'), '#' + sg.win) +
+      pick(t('連贏', 'Quinella'), '#' + sg.quinella.join(' – #')) +
+      pick(t('位置', 'Place'), '#' + sg.place.join(', #')) +
+      pick(t('四連環（頭四名）', 'First 4 box'), '#' + sg.box4.join(', #')) +
+      '</div><span class="conf">' + CONF[res.confidence][lang === 'zh' ? 0 : 1] + t('（頭兩名相差 ', ' (gap between top two: ') + res.gap + t(' 分）', ' pts)') + '</span></section>';
+    var list = '<ol class="list">' + res.rows.map(function (x) { return runnerRow(x, race, res.rows); }).join('') + '</ol>';
+    $('#raceView').innerHTML = head + '<div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">' + picks + list + '</div>';
+  }
+
+  var VERD = { top: ['首選：綜合分數最高', 'Top pick: highest overall score'], contender: ['有力爭上名', 'Genuine place chance'], mid: ['中游，可作配腳', 'Mid-field, fits as a filler'], outsider: ['冷門，勝算較低', 'Outsider, longer odds on paper'] };
+  var CODE = {
+    lastWin: ['上仗贏出，狀態延續', function (v) { return 'won last time out'; }],
+    formHot: [function (v) { return '近三仗入過 ' + v + ' 次三甲'; }, function (v) { return 'placed in ' + v + ' of last 3 runs'; }],
+    formCold: ['近績欠佳', 'poor recent form'],
+    drawGood: [function (v) { return v + ' 檔，位置有利'; }, function (v) { return 'good draw (' + v + ')'; }],
+    drawBad: [function (v) { return v + ' 檔，短途外檔較吃虧'; }, function (v) { return 'wide draw (' + v + ') over a short trip'; }],
+    restIdeal: [function (v) { return '休後 ' + v + ' 日，間隔理想'; }, function (v) { return v + ' days since last run, an ideal gap'; }],
+    quickBack: [function (v) { return '只休 ' + v + ' 日，要留意體力'; }, function (v) { return 'quick back-up (' + v + ' days)'; }],
+    longBreak: [function (v) { return '休了 ' + v + ' 日，未必即時入狀態'; }, function (v) { return 'long break (' + v + ' days), may need a run'; }],
+    ratingTop: [function (v) { return '評分 ' + v + '，全場最高一檔'; }, function (v) { return 'rating ' + v + ', among the best in the field'; }],
+    ratingLow: [function (v) { return '評分 ' + v + '，全場偏低'; }, function (v) { return 'rating ' + v + ', low for this field'; }],
+    lightWt: [function (v) { return '負磅 ' + v + ' 磅，較輕'; }, function (v) { return 'light weight (' + v + ' lb)'; }],
+    heavyWt: [function (v) { return '負磅 ' + v + ' 磅，較重'; }, function (v) { return 'heavy weight (' + v + ' lb)'; }],
+    jockeyHot: [function (v) { return '騎師勝率 ' + v + '%'; }, function (v) { return 'jockey win rate ' + v + '%'; }],
+    trainerHot: [function (v) { return '練馬師勝率 ' + v + '%'; }, function (v) { return 'trainer win rate ' + v + '%'; }],
+    noForm: ['未有近績資料', 'no recent form on record']
+  };
+  function codeText(o) {
+    var e = CODE[o.c][lang === 'zh' ? 0 : 1];
+    return typeof e === 'function' ? e(o.v) : e;
+  }
+  function assessText(x, race, rows) {
+    var a = assessRunner(x, race, rows);
+    var sep = lang === 'zh' ? '、' : ', ';
+    var out = '<b>' + VERD[a.verdict][lang === 'zh' ? 0 : 1] + '</b>';
+    if (a.pros.length) out += (lang === 'zh' ? '。優點：' : '. Plus: ') + esc(a.pros.map(codeText).join(sep));
+    if (a.cons.length) out += (lang === 'zh' ? '。留意：' : '. Watch: ') + esc(a.cons.map(codeText).join(sep));
+    return out + (lang === 'zh' ? '。' : '.');
+  }
+  function pick(k, v) { return '<div class="pick"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+
+  function runnerRow(x, race, rows) {
+    var r = x.runner;
+    var cls = x.rank <= 3 ? ' top' + x.rank : '';
+    var sub = [r.jockey, r.trainer].filter(Boolean).map(esc).join(' / ');
+    var chips = x.reasons.map(function (k) { return '<span class="chip">' + esc(fname(k)) + '</span>'; }).join('');
+    var facts = FACTORS.map(function (k) {
+      return '<div class="fact"><span>' + esc(fname(k)) + ' · ' + Math.round(x.factors[k] * 100) + '</span><div class="bar"><i style="width:' + Math.round(x.factors[k] * 100) + '%"></i></div></div>';
+    }).join('');
+    var meta = [
+      r.draw != null ? t('檔位 ', 'Draw ') + r.draw : '', r.weight != null ? t('負磅 ', 'Wt ') + r.weight : '', r.rating != null ? t('評分 ', 'Rtg ') + r.rating : '',
+      r.form ? t('近績 ', 'Form ') + parseForm(r.form).join('-') : '', r.daysOff != null ? t('休 ', 'Rest ') + r.daysOff + t(' 日', 'd') : ''
+    ].filter(Boolean).join(' · ');
+    return '<li class="row' + cls + '"><span class="rank">' + x.rank + '</span><span class="no">' + esc(r.no) + '</span>' +
+      '<div class="who"><b>' + esc(r.name) + '</b><span>' + sub + '</span></div><span class="score" aria-label="' + t('分數', 'Score') + '">' + x.score.toFixed(1) + '</span>' +
+      '<div class="bar" role="img" aria-label="' + x.score + '"><i style="width:' + Math.min(100, x.score) + '%"></i></div>' +
+      (chips ? '<div class="chips">' + chips + '</div>' : '') +
+      '<p class="assess">' + assessText(x, race, rows) + '</p>' +
+      '<details class="detail"><summary>' + t('詳細分項', 'Factor breakdown') + '</summary><p class="fact" style="padding-top:4px">' + esc(meta) + '</p><div class="facts">' + facts + '</div></details></li>';
+  }
+
+  function renderSliders() {
+    $('#sliders').innerHTML = FACTORS.map(function (k) {
+      return '<label class="sl"><span>' + esc(fname(k)) + '</span><output id="o-' + k + '">' + state.weights[k] + '</output>' +
+        '<input type="range" min="0" max="50" step="1" value="' + state.weights[k] + '" data-k="' + k + '"></label>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#sliders input'), function (inp) {
+      inp.addEventListener('input', function () {
+        var k = inp.getAttribute('data-k');
+        state.weights[k] = +inp.value;
+        $('#o-' + k).textContent = inp.value;
+        save(); renderRace();
+      });
+    });
+  }
+
+  function renderAll() { renderStatic(); renderFixture(); renderMeeting(); renderTabs(); renderRace(); }
+
+  $('#lang').addEventListener('click', function () {
+    lang = lang === 'zh' ? 'en' : 'zh';
+    try { localStorage.setItem(LKEY, lang); } catch (e) { /* ignore */ }
+    var open = !$('#importBox').hidden;
+    $('#importBox').hidden = true;
+    renderAll();
+    if (open) toggleImport();
+  });
+  $('#w-reset').addEventListener('click', function () { state.weights = Object.assign({}, DEFAULT_WEIGHTS); save(); renderSliders(); renderRace(); });
+
+  renderAll();
+})();
+</script>
+
+</body></html>
