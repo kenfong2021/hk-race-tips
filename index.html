@@ -111,6 +111,14 @@ h1, h2, h3, p { margin: 0; text-wrap: balance; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px 14px; padding-top: 6px; }
 .fact { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
 .fact .bar { height: 6px; }
+.radar { display: block; width: 100%; max-width: 320px; height: auto; margin: 4px auto 0; }
+.radar .grid { fill: none; stroke: var(--line); stroke-width: 1; }
+.radar .axis { stroke: var(--line); stroke-width: 1; }
+.radar .area { fill: var(--accent); fill-opacity: .28; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.radar .dot { fill: var(--accent); }
+.radar text { fill: var(--ink); font-size: 11px; font-family: var(--font-body); }
+.radar text.v { fill: var(--muted); font-size: 10px; }
+
 .panel { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 4px 14px; }
 .panel > summary { cursor: pointer; font-weight: 700; padding: 10px 0; }
 .sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 20px; padding: 4px 0 12px; }
@@ -635,14 +643,32 @@ var HIST_1025 = {"1-1":["13/1200/S 1/1200/S 2/1200/S 5/1000/S",""],"1-2":["2/100
     if (rec.part) out += '<br><span class="na">' + t('（只計近 ' + rec.runs + ' 仗）', '(last ' + rec.runs + ' runs only)') + '</span>';
     return out;
   }
+  function radarSVG(x) {
+    var n = FACTORS.length, cx = 160, cy = 130, R = 78, i, k;
+    function pt(idx, f) { var a = -Math.PI / 2 + idx * 2 * Math.PI / n; return [cx + R * f * Math.cos(a), cy + R * f * Math.sin(a)]; }
+    function poly(f) { return FACTORS.map(function (_, j) { var p = pt(j, f); return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+    var g = '';
+    [0.25, 0.5, 0.75, 1].forEach(function (f) { g += '<polygon class="grid" points="' + poly(f) + '"/>'; });
+    var axes = '', labels = '', dots = '', vals = [];
+    for (i = 0; i < n; i++) {
+      k = FACTORS[i];
+      var v = Math.max(0, Math.min(1, x.factors[k] || 0)), e = pt(i, 1), p = pt(i, v), l = pt(i, 1.2);
+      var a = -Math.PI / 2 + i * 2 * Math.PI / n, c = Math.cos(a);
+      var anchor = Math.abs(c) < 0.2 ? 'middle' : c > 0 ? 'start' : 'end';
+      axes += '<line class="axis" x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) + '"/>';
+      vals.push(p[0].toFixed(1) + ',' + p[1].toFixed(1));
+      dots += '<circle class="dot" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3"/>';
+      labels += '<text text-anchor="' + anchor + '" x="' + l[0].toFixed(1) + '" y="' + (l[1] + 3).toFixed(1) + '">' + esc(fname(k)) + '<tspan class="v" x="' + l[0].toFixed(1) + '" dy="12">' + Math.round(v * 100) + '</tspan></text>';
+    }
+    var desc = FACTORS.map(function (kk) { return fname(kk) + ' ' + Math.round((x.factors[kk] || 0) * 100); }).join(', ');
+    return '<svg class="radar" viewBox="0 0 320 270" role="img" aria-label="' + esc(desc) + '">' + g + axes + '<polygon class="area" points="' + vals.join(' ') + '"/>' + dots + labels + '</svg>';
+  }
+
   function runnerRow(x, race, rows) {
     var r = x.runner;
     var cls = x.rank <= 3 ? ' top' + x.rank : '';
     var sub = [r.jockey, r.trainer].filter(Boolean).map(esc).join(' / ');
     var chips = x.reasons.map(function (k) { return '<span class="chip">' + esc(fname(k)) + '</span>'; }).join('');
-    var facts = FACTORS.map(function (k) {
-      return '<div class="fact"><span>' + esc(fname(k)) + ' · ' + Math.round(x.factors[k] * 100) + '</span><div class="bar"><i style="width:' + Math.round(x.factors[k] * 100) + '%"></i></div></div>';
-    }).join('');
     var meta = [
       r.draw != null ? t('檔位 ', 'Draw ') + r.draw : '', r.weight != null ? t('負磅 ', 'Wt ') + r.weight : '', r.rating != null ? t('評分 ', 'Rtg ') + r.rating : '',
       r.form ? t('近績 ', 'Form ') + parseForm(r.form).join('-') : '', r.daysOff != null ? t('休 ', 'Rest ') + r.daysOff + t(' 日', 'd') : ''
@@ -653,7 +679,7 @@ var HIST_1025 = {"1-1":["13/1200/S 1/1200/S 2/1200/S 5/1000/S",""],"1-2":["2/100
       (chips ? '<div class="chips">' + chips + '</div>' : '') +
       '<p class="assess">' + assessText(x, race, rows) + '</p>' +
       (sameDistText(r, race) ? '<p class="samedist">' + sameDistText(r, race) + '</p>' : '') +
-      '<details class="detail"><summary>' + t('詳細分項', 'Factor breakdown') + '</summary><p class="fact" style="padding-top:4px">' + esc(meta) + '</p><div class="facts">' + facts + '</div></details></li>';
+      '<details class="detail"><summary>' + t('詳細分項', 'Factor breakdown') + '</summary><p class="fact" style="padding-top:4px">' + esc(meta) + '</p>' + radarSVG(x) + '</details></li>';
   }
 
   function renderSliders() {
